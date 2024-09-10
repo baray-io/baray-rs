@@ -1,1 +1,1 @@
-# Baray Client for Rust
+# Baray Rust Client
