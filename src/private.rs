@@ -1,4 +1,5 @@
 use reqwest::{header::HeaderMap, Client};
+use serde_json::json;
 
 use crate::{AesCbc256Key, IntentDetail, IntentPayload, Key, WebhookKey};
 
@@ -93,10 +94,17 @@ impl PrivateClient {
         headers.insert("x-api-key", self.api_key.parse().unwrap());
         headers.insert("Content-Type", "application/json".parse().unwrap());
 
+        let plain_text = serde_json::to_string(&intent).map_err(|e| e.to_string())?;
+        let encrypted_intent = self.encrypt(&plain_text);
+
+        let body = json!({
+            "data": encrypted_intent
+        });
+
         let res = client
             .post(url)
             .headers(headers)
-            .json(&intent)
+            .json(&body)
             .send()
             .await
             .map_err(|e| e.to_string())?;
