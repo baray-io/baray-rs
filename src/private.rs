@@ -88,7 +88,7 @@ impl PrivateClient {
     }
 
     pub async fn create_intent(&self, intent: IntentPayload) -> Result<IntentDetail, String> {
-        let url = "";
+        let url = "https://api.baray.io/pay";
         let client = Client::new();
         let mut headers = HeaderMap::new();
         headers.insert("x-api-key", self.api_key.parse().unwrap());
