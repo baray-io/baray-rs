@@ -96,6 +96,8 @@ impl PrivateClient {
 
         let plain_text = serde_json::to_string(&intent).map_err(|e| e.to_string())?;
         let encrypted_intent = self.encrypt(&plain_text);
+        println!("plain_text {}", plain_text);
+        println!("encrypted {}", encrypted_intent);
 
         let body = json!({
             "data": encrypted_intent
@@ -109,10 +111,9 @@ impl PrivateClient {
             .await
             .map_err(|e| e.to_string())?;
 
-        let data = res
-            .json::<IntentDetail>()
-            .await
-            .map_err(|e| e.to_string())?;
+        let text = res.text().await.unwrap();
+
+        let data = serde_json::from_str::<IntentDetail>(&text).map_err(|e| e.to_string())?;
 
         Ok(data)
     }
