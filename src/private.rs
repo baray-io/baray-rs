@@ -112,7 +112,7 @@ impl PrivateClient {
             .map_err(|e| e.to_string())?;
 
         let text = res.text().await.unwrap();
-
+        println!("res text {}", &text);
         let data = serde_json::from_str::<IntentDetail>(&text).map_err(|e| e.to_string())?;
 
         Ok(data)
