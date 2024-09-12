@@ -61,7 +61,7 @@ impl PrivateClient {
         }
 
         Ok(Self {
-            api_key: pk.key,
+            api_key: public_key,
             secret_key: sk.key,
             iv_key,
             wh_secret_key: wh_sk.key,
