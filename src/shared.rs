@@ -13,13 +13,15 @@ pub struct IntentPayload {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct IntentDetail {
     pub _id: String,
-    pub items: Vec<Value>,
-    pub total_price: String,
-    pub total_discount: String,
-    pub grand_total: String,
-    pub order_date: String,
-    pub org_id: String,
-    pub customer_id: String,
+    pub amount: String,
+    pub currency: String,
+    // pub items: Option<Vec<Value>>,
+    // pub total_price: String,
+    // pub total_discount: String,
+    // pub grand_total: String,
+    // pub order_date: String,
+    // pub org_id: String,
+    // pub customer_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
