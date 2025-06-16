@@ -1,75 +1,42 @@
-use reqwest::{header::HeaderMap, Client};
+use reqwest::{
+    header::{HeaderMap, InvalidHeaderValue},
+    Client,
+};
 use serde_json::json;
 
-use crate::{AesCbc256Key, IntentDetail, IntentPayload, Key, WebhookKey};
+use crate::{AesCbc256Key, IntentDetail, IntentPayload};
 
 pub struct PrivateClient {
     pub api_key: String,
     pub secret_key: String,
     pub iv_key: String,
-    pub wh_secret_key: String,
-    pub wh_iv_key: String,
 }
 
 impl PrivateClient {
-    pub fn new(
-        public_key: String,
-        secret_key: String,
-        iv_key: String,
-        wh_secret_key: String,
-        wh_iv_key: String,
-    ) -> Result<Self, String> {
-        let pk = Key::new(&public_key)?;
-        let sk = Key::new(&secret_key)?;
-        let wh_sk = WebhookKey::new(&wh_secret_key)?;
-        let wh_iv = WebhookKey::new(&wh_iv_key)?;
-
-        match pk.r#type {
-            crate::KeyType::Pk => {}
-            crate::KeyType::Sk => {
-                return Err(String::from(
-                    "Invalid public key. A public key must start with pk_***",
-                ));
-            }
+    pub fn new(api_key: String, secret_key: String, iv_key: String) -> Result<Self, String> {
+        if !(api_key.starts_with("pk_dev_")
+            || api_key.starts_with("pk_uat_")
+            || api_key.starts_with("pk_prod_"))
+        {
+            return Err("Invalid API Key".to_string());
         }
 
-        match sk.r#type {
-            crate::KeyType::Pk => {
-                return Err(String::from(
-                    "Invalid private key. A secret key must start with sk_***",
-                ));
-            }
-            crate::KeyType::Sk => {}
+        if secret_key.len() != 44 {
+            return Err("Invalid secret Key".to_string());
         }
 
-        match wh_sk.mode {
-            crate::WhMode::Sk => {}
-            crate::WhMode::Iv => {
-                return Err(String::from(
-                    "Invalid webhook secret key. A webhook secret key must start with wh_sk_***",
-                ));
-            }
-        }
-
-        match wh_iv.mode {
-            crate::WhMode::Sk => {
-                return Err(String::from(
-                    "Invalid webhook IV key. A webhook IV key must start with wh_iv_***",
-                ));
-            }
-            crate::WhMode::Iv => {}
+        if iv_key.len() != 24 {
+            return Err("Invalid iv Key".to_string());
         }
 
         Ok(Self {
-            api_key: public_key,
-            secret_key: sk.key,
+            api_key,
+            secret_key,
             iv_key,
-            wh_secret_key: wh_sk.key,
-            wh_iv_key: wh_iv.key,
         })
     }
 
-    pub fn encrypt(&self, plain_text: &str) -> String {
+    pub fn encrypt(&self, plain_text: &str) -> Result<String, String> {
         let key = AesCbc256Key {
             sk: self.secret_key.to_string(),
             iv: self.iv_key.to_string(),
@@ -78,10 +45,10 @@ impl PrivateClient {
         key.encrypt(plain_text)
     }
 
-    pub fn decrypt(&self, encrypted_text: &str) -> String {
+    pub fn decrypt(&self, encrypted_text: &str) -> Result<String, String> {
         let key = AesCbc256Key {
-            sk: self.wh_secret_key.to_string(),
-            iv: self.wh_iv_key.to_string(),
+            sk: self.secret_key.to_string(),
+            iv: self.iv_key.to_string(),
         };
 
         key.decrypt(encrypted_text)
@@ -91,13 +58,22 @@ impl PrivateClient {
         let url = "https://api.baray.io/pay";
         let client = Client::new();
         let mut headers = HeaderMap::new();
-        headers.insert("x-api-key", self.api_key.parse().unwrap());
-        headers.insert("Content-Type", "application/json".parse().unwrap());
+
+        headers.insert(
+            "x-api-key",
+            self.api_key
+                .parse()
+                .map_err(|e: InvalidHeaderValue| e.to_string())?,
+        );
+        headers.insert(
+            "Content-Type",
+            "application/json"
+                .parse()
+                .map_err(|e: InvalidHeaderValue| e.to_string())?,
+        );
 
         let plain_text = serde_json::to_string(&intent).map_err(|e| e.to_string())?;
-        let encrypted_intent = self.encrypt(&plain_text);
-        println!("plain_text {}", plain_text);
-        println!("encrypted {}", encrypted_intent);
+        let encrypted_intent = self.encrypt(&plain_text)?;
 
         let body = json!({
             "data": encrypted_intent
@@ -111,8 +87,8 @@ impl PrivateClient {
             .await
             .map_err(|e| e.to_string())?;
 
-        let text = res.text().await.unwrap();
-        println!("res text {}", &text);
+        let text = res.text().await.map_err(|e| e.to_string())?;
+
         let data = serde_json::from_str::<IntentDetail>(&text).map_err(|e| e.to_string())?;
 
         Ok(data)
