@@ -8,6 +8,8 @@ pub struct IntentPayload {
     pub order_id: String,
     pub tracking: Value,
     pub order_details: Value,
+    #[serde(default)]
+    pub custom_success_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
