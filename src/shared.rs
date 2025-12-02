@@ -61,3 +61,11 @@ impl KeyType {
         }
     }
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AbaQrResponse {
+    pub intent_id: String,
+    pub qr_string: String,
+    pub abapay_deeplink: String,
+    pub checkout_qr_url: String,
+}
